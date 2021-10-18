@@ -47,6 +47,67 @@ async function createPost(req, res) {
   }
 };
 
+async function getAllPosts(req, res) {
+  const foundAllPosts = await Post.find({}).populate("postOwner", "username");
+  res.json({ message: "success", payload: foundAllPosts });
+};
+
+async function updatePostById(req, res) {
+  try {
+    const foundPost = await Post.findById(req.params.id);
+    const foundUser = await User.findOne({ email: res.locals.decodedData.email })
+    console.log(59, foundPost.postOwner);
+    console.log(60, foundUser._id)
+    if (!foundPost) {
+      res.status(404).json({ message: "failure", error: "post not found" })
+    } else if (JSON.stringify(foundUser._id) !== JSON.stringify(foundPost.postOwner)) {
+      res.status(403).json({ message: "failure", error: "user can only update their own post" });
+    } else {
+      const updatedPost = await Post.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        {
+          new: true,
+        }
+      )
+      res.json({ message: "success", payload: updatedPost })
+    }
+  } catch (e) {
+    res.status(500).json({ message: "error", error: e.message })
+  }
+}
+
+async function deletePostById(req, res) {
+  try {
+    const deletedPost = await Post.findByIdAndDelete(req.params.id);
+    if (!deletedPost) {
+      return res
+        .status(404)
+        .json({ message: "failure", error: "post not found" })
+    } else {
+      const decodedData = res.locals.decodedData;
+      const foundUser = await User.findOne({ email: decodedData.email });
+      const userPostHistoryArray = foundUser.postHistory;
+      const filteredPostHistoryArray = userPostHistoryArray.filter(
+        (item) => item._id.toString() !== req.params.id
+      );
+
+      foundUser.postHistory = filteredPostHistoryArray;
+      await foundUser.save();
+
+      res.json({
+        message: "success",
+        deleted: deletedPost,
+      })
+    }
+  } catch (e) {
+    res.status(500).json(errorHandler(e));
+  }
+}
+
 module.exports = {
   createPost,
+  getAllPosts,
+  updatePostById,
+  deletePostById,
 }

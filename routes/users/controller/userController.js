@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../model/User');
+const Post = require('../../posts/model/Post');
+const { deleteComments } = require('../../comments/controller/commentController')
 
 async function createUser(req, res) {
   const { firstName, lastName, username, email, password } = req.body;
@@ -65,19 +67,15 @@ async function deleteUser(req, res) {
   try {
     // TODO: delete comments first:
     // find user
-    const decodedData = res.locals.decodedData
-    console.log(decodedData)
-    const foundUser = await User.find({ email: decodedData.email });
+
+    const foundUser = await User.find({ email: res.locals.decodedData.email });
     console.log(foundUser);
 
-    // user will have comment history
-    // comment history will have comment id
-    // open comment id somehow to see which posts id
-    // go through all corresponding posts
-    // filter arrays of corresponding posts wih the comment id that goes with said post
-    // save
+    const deletedPosts = await Post.deleteMany({ postOwner: foundUser._id });
 
-    // deleteMany
+    const deletedUser = await User.findByIdAndDelete(foundUser._id);
+
+    res.json({ message: "success", payload: deletedUser });
   } catch (e) {
     res.json({ message: error, error: e.message })
   }

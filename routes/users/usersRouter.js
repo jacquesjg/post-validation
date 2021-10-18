@@ -15,6 +15,7 @@ const {
   deleteUser,
 } = require('./controller/userController');
 
+
 router.post(
   '/create-user',
   checkIsUndefined,
